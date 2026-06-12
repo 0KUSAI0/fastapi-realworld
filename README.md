@@ -95,7 +95,6 @@ demo/                                    静态演示前端
 scripts/seed_demo_data.py                演示数据初始化脚本
 tests/test_services/                     AI 服务层测试
 tests/test_api/test_routes/              API 路由测试
-docs/26项目报告-完成版.docx              项目报告
 ```
 
 ## 5. 快速启动
