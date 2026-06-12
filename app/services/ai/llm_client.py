@@ -54,6 +54,9 @@ class LLMClient:
     def model_name(self) -> str:
         return self._settings.llm_model
 
+    async def aclose(self) -> None:
+        await self._client.close()
+
     async def _chat(self, *, messages: List[ChatMessage]) -> str:
         try:
             response = await self._client.chat.completions.create(

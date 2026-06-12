@@ -230,13 +230,37 @@ async def test_user_can_get_recommendations_with_embedding_fallback(
     test_user: UserInDB,
     pool: Pool,
 ) -> None:
-    app.dependency_overrides[get_app_settings] = lambda: AppSettingsForTests(
+    settings = AppSettingsForTests(
         database_url="postgresql://postgres:postgres@localhost:15432/rwtest",
         embedding_model="sentence-transformers/not-cached",
         embedding_dimensions=384,
         embedding_allow_download=False,
         embedding_fallback_enabled=True,
     )
+    app.dependency_overrides[get_app_settings] = lambda: settings
+
+    from fastapi import Depends as _Depends
+
+    from app.api.dependencies.database import get_repository as _get_repository
+    from app.services.ai.article_recommendation import (
+        ArticleRecommendationService as _ArticleRecommendationService,
+    )
+    from app.services.ai.embedding_client import EmbeddingClient as _EmbeddingClient
+
+    def make_recommendation_service(
+        articles_repo: ArticlesRepository = _Depends(
+            _get_repository(ArticlesRepository),
+        ),
+    ) -> _ArticleRecommendationService:
+        return _ArticleRecommendationService(
+            embedding_client=_EmbeddingClient(settings),
+            articles_repo=articles_repo,
+            cross_reranker=None,
+        )
+
+    app.dependency_overrides[
+        get_article_recommendation_service
+    ] = make_recommendation_service
     async with pool.acquire() as connection:
         articles_repo = ArticlesRepository(connection)
         await articles_repo.create_article(
@@ -266,6 +290,7 @@ async def test_user_can_get_recommendations_with_embedding_fallback(
         )
     finally:
         app.dependency_overrides.pop(get_app_settings)
+        app.dependency_overrides.pop(get_article_recommendation_service)
 
     assert response.status_code == status.HTTP_200_OK
     recommendations = RecommendedArticlesInResponse(**response.json())
