@@ -1,229 +1,306 @@
-.. image:: ./.github/assets/logo.png
+# FastAPI RealWorld AI 拓展版项目说明
 
-|
+本文档用于说明本课程项目在原始 `fastapi-realworld-example-app` 基础上的拓展内容和快速启动方式。原项目 `README.md` 保留为开源项目原始说明，本文件重点介绍本仓库当前版本新增的 AI 写作、文章库问答、相关推荐和内容治理能力。
 
-.. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/API%20spec/badge.svg
-   :target: https://github.com/nsidnev/fastapi-realworld-example-app
+## 1. 项目来源
 
-.. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/Tests/badge.svg
-   :target: https://github.com/nsidnev/fastapi-realworld-example-app
+本项目基于开源项目 `nsidnev/fastapi-realworld-example-app` 进行二次开发。原项目实现了 RealWorld/Conduit 风格的文章社区后端，主要包含用户注册登录、文章发布、文章列表、文章详情、标签、评论等基础后端能力，并展示了 FastAPI、Pydantic、异步数据库访问、数据库迁移和 pytest 测试等工程实践。
 
-.. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/Styles/badge.svg
-   :target: https://github.com/nsidnev/fastapi-realworld-example-app
+本课程项目保留原项目的后端分层结构，在其基础上增加面向文章社区场景的 AI 辅助创作、AI 文章库问答、相关推荐、AI 内容审核和管理员治理功能。
 
-.. image:: https://codecov.io/gh/nsidnev/fastapi-realworld-example-app/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/nsidnev/fastapi-realworld-example-app
+## 2. 主要拓展功能
 
-.. image:: https://img.shields.io/github/license/Naereen/StrapDown.js.svg
-   :target: https://github.com/nsidnev/fastapi-realworld-example-app/blob/master/LICENSE
+### 2.1 普通用户功能
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/ambv/black
+- 文章列表、文章详情和评论浏览。
+- 文章库小助手：用户可以用自然语言询问文章库，例如“有没有关于城市生活和注意力恢复的文章？”，系统先检索相关文章，再基于来源文章生成回答。
+- 来源文章跳转：文章库助手返回来源文章后，用户可以点击进入对应阅读页。
+- 相关推荐：在文章详情页根据当前文章内容推荐相关内容。
+- 账号中心：集中查看个人文章、收藏、评论和通知。
+- 举报机制：用户可以举报文章或评论，处理结果会通过通知反馈。
 
-.. image:: https://img.shields.io/badge/style-wemake-000000.svg
-   :target: https://github.com/wemake-services/wemake-python-styleguide
+### 2.2 创作者功能
 
-----------
+- AI 草稿分析：对标题、摘要、标签和正文进行分析，返回文章摘要、推荐标签、内容评分、风险标签和修改建议。
+- 建议改写：用户选择某条修改建议后，系统只围绕该建议改写文章，并展示修改理由和前后差异。
+- AI 润色：采用“批评、改写、验证”的多阶段流程，对文章段落进行润色，并返回改进分数和句子级差异。
+- 发布前初审：当文章内容评分过低或存在风险标签时，文章会进入待审核状态，由管理员复核。
 
-**NOTE**: This repository is not actively maintained because this example is quite complete and does its primary goal - passing Conduit testsuite.
+### 2.3 管理员功能
 
-More modern and relevant examples can be found in other repositories with ``fastapi`` tag on GitHub.
+- 平台概览：展示用户、文章、评论、待审核内容、隐藏内容、AI 审核数量和高风险内容等统计信息。
+- 文章管理：支持文章搜索、状态筛选、隐藏和恢复。
+- 评论管理：支持评论搜索、状态筛选、隐藏和恢复。
+- AI 审核队列：集中展示需要人工复核的文章和评论，并展示模型给出的风险类别、风险等级、原因、建议修改内容和置信度。
+- 举报处理：管理员可以处理用户举报，选择忽略、解决或隐藏内容。
+- 审计日志与通知：管理员处理结果会写入审计日志，并向相关用户发送通知。
 
-AI Course Project Notes
------------------------
+## 3. AI 机制说明
 
-This fork adds three AI features on top of the original RealWorld backend:
+### 3.1 文章分析
 
-* AI article assistant: ``POST /api/articles/ai/analyze`` calls a vLLM OpenAI-compatible Qwen3-8B service and returns a structured draft review.
-* AI suggestion revision loop: ``POST /api/articles/ai/revise-suggestion`` rewrites the draft for one selected analysis suggestion and returns a before/after diff for user confirmation.
-* AI article library assistant: ``POST /api/articles/ai/ask`` retrieves relevant articles with semantic search and answers questions from those sources.
-* AI comment moderation: ``POST /api/articles/{slug}/comments/ai/moderate`` checks a draft comment; normal comment creation can also moderate in ``log`` or ``block`` mode.
-* AI related article recommendation: ``GET /api/articles/{slug}/recommendations`` uses ``sentence-transformers/all-MiniLM-L6-v2`` embeddings and pgvector cosine search.
+文章分析服务接收标题、摘要、正文和标签，整理为提示词后调用本地大语言模型。模型返回结构化结果，后端再进行数据校验，确保结果包含文章摘要、推荐标签、内容评分、风险标签和修改建议。
 
-For this local setup the application database is ``rwdb`` and the isolated test database is ``rwtest``. Keeping them separate avoids demo data changing test counts.
+当启用发布前审核时，内容评分低于 50 分或存在风险标签的文章不会直接公开，而是进入待审核状态。
 
-Local AI Demo Quickstart
-------------------------
+### 3.2 文章润色
 
-Start PostgreSQL with pgvector on a user-scoped localhost port::
+文章润色不是一次性改写，而是分为三个阶段：
 
-    docker run --name rw-pgvector \
-      -e POSTGRES_USER=postgres \
-      -e POSTGRES_PASSWORD=postgres \
-      -e POSTGRES_DB=rwdb \
-      -p 127.0.0.1:15432:5432 \
-      -v "$PWD/postgres-data-pgvector:/var/lib/postgresql/data" \
-      -d pgvector/pgvector:pg16
+1. 批评：模型根据用户指令指出原文问题。
+2. 改写：模型根据问题生成润色版本。
+3. 验证：模型检查润色结果是否解决问题，并给出改进分数。
 
-Create the separate test database once::
+润色最多运行两轮，提前停止阈值为 0.65。最终返回改进分数更高的版本，并生成句子级差异，方便用户决定是否应用。
 
-    docker exec rw-pgvector createdb -U postgres rwtest
+### 3.3 文章库 RAG 问答
 
-Use ``.env.example`` as the base for ``.env``. The important AI settings are::
+文章库助手采用 RAG 流程：
 
-    LLM_BASE_URL=http://127.0.0.1:8000/v1
-    LLM_API_KEY=
-    LLM_MODEL=qwen3-8b
-    EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-    EMBEDDING_ALLOW_DOWNLOAD=false
-    EMBEDDING_FALLBACK_ENABLED=true
-    AI_COMMENT_MODERATION_MODE=block
-    AI_ARTICLE_REVIEW_ON_PUBLISH=true
-    AI_ARTICLE_MIN_CONTENT_SCORE=50
+1. 根据用户问题生成查询向量。
+2. 从文章库召回候选文章。
+3. 对候选文章进行本地重排。
+4. 将排序靠前的文章片段交给模型生成回答。
+5. 校验模型引用的来源文章，避免出现不存在的引用。
 
-``AI_COMMENT_MODERATION_MODE=block`` makes normal comment publishing call the moderation model first and reject unsafe comments before they are saved. Use ``log`` to record moderation decisions without blocking, or ``off`` to disable automatic moderation during normal comment creation.
+本地重排会综合原始向量相似度、标题命中、标签命中、摘要命中和正文命中。标题命中权重最高，标签其次，摘要和正文再次。对于明显的测试文章或占位内容，系统会额外降权，避免无关测试数据排在真实相关文章之前。
 
-``AI_ARTICLE_REVIEW_ON_PUBLISH=true`` makes article publishing call the article assistant before insertion. Articles below ``AI_ARTICLE_MIN_CONTENT_SCORE`` or with risk labels are rejected before they are stored.
+### 3.4 相关推荐
 
-``EMBEDDING_ALLOW_DOWNLOAD=false`` keeps the recommendation service offline-friendly. If ``sentence-transformers/all-MiniLM-L6-v2`` is not already cached locally, ``EMBEDDING_FALLBACK_ENABLED=true`` lets recommendations use a deterministic local hashing embedding instead of failing. To use the real MiniLM embedding, pre-download the model into the HuggingFace cache or set ``EMBEDDING_CACHE_FOLDER`` to a local model cache.
+相关推荐先进行向量召回，再进行模型重排。系统将文章标题、摘要、标签和正文拼接后生成向量，并用 pgvector 计算余弦相似度。
 
-On this shared machine, prefix startup and test commands with ``DEBUG=true``. A shell-level value such as ``DEBUG=release`` overrides ``.env`` and is not a valid boolean for this project.
+候选召回数量取“展示数量的 4 倍”和“20”中的较大值。重排阶段会让模型判断当前文章与候选文章在主题和阅读延续性上的相关程度。最终分数采用加权方式：
 
-Run migrations for the demo database::
+```text
+最终分数 = 0.35 × 向量相似度分数 + 0.65 × 模型相关性分数
+```
 
-    DEBUG=true .venv/bin/alembic upgrade head
+如果本地没有语义模型缓存，系统可以回退到确定性的哈希向量表示，保证演示和测试不因模型文件缺失而中断。
 
-Run the backend on a free port, for example ``8010``::
+### 3.5 AI 审核
 
-    DEBUG=true .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+评论审核会把评论内容、所属文章和用户信息交给模型，返回是否允许发布、风险类别、风险等级、审核原因、建议修改内容和置信度。
 
-Serve the static demo frontend::
+文章审核复用文章分析结果，重点依据内容评分和风险标签判断是否进入人工复核。模型只负责初筛，最终通过或拒绝由管理员处理。
 
-    cd demo
-    ../.venv/bin/python -m http.server 5173 --bind 127.0.0.1
+## 4. 目录说明
 
-Open ``http://127.0.0.1:5173`` and keep the API address as ``http://127.0.0.1:8010/api``.
+```text
+app/services/ai/                         AI 服务层
+app/api/routes/articles/                 文章、推荐、文章库问答相关接口
+app/api/routes/comments.py               评论和评论审核接口
+app/api/routes/admin.py                  管理员治理接口
+app/db/migrations/versions/              数据库迁移
+demo/                                    静态演示前端
+scripts/seed_demo_data.py                演示数据初始化脚本
+tests/test_services/                     AI 服务层测试
+tests/test_api/test_routes/              API 路由测试
+docs/26项目报告-完成版.docx              项目报告
+```
 
-Run the regression tests against ``rwtest``::
+## 5. 快速启动
 
-    DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
-      DEBUG=true .venv/bin/python -m pytest -q --no-cov -n 0
+以下命令按当前项目的本地开发环境编写。默认使用 PostgreSQL + pgvector，应用数据库为 `rwdb`，测试数据库为 `rwtest`。
 
-The default tests use fake LLM clients, so they do not require vLLM to be running. Real model behavior should be checked manually through the demo UI or through targeted integration tests because LLM wording is nondeterministic.
+### 5.1 准备 Python 环境
 
-Quickstart
-----------
+如果仓库中已有 `.venv`，可以直接使用现有虚拟环境。否则可用 Poetry 安装依赖：
 
-First, run ``PostgreSQL``, set environment variables and create database. For example using ``docker``: ::
+```bash
+poetry install
+poetry shell
+```
 
-    export POSTGRES_DB=rwdb POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres
-    docker run --name pgdb --rm -e POSTGRES_USER="$POSTGRES_USER" -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" -e POSTGRES_DB="$POSTGRES_DB" postgres
-    export POSTGRES_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pgdb)
-    createdb --host=$POSTGRES_HOST --port=$POSTGRES_PORT --username=$POSTGRES_USER $POSTGRES_DB
+### 5.2 启动 PostgreSQL + pgvector
 
-Then run the following commands to bootstrap your environment with ``poetry``: ::
+```bash
+docker run --name rw-pgvector \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=rwdb \
+  -p 127.0.0.1:15432:5432 \
+  -d pgvector/pgvector:pg16
+```
 
-    git clone https://github.com/nsidnev/fastapi-realworld-example-app
-    cd fastapi-realworld-example-app
-    poetry install
-    poetry shell
+创建测试数据库：
 
-Then create ``.env`` file (or rename and modify ``.env.example``) in project root and set environment variables for application: ::
+```bash
+docker exec rw-pgvector createdb -U postgres rwtest
+```
 
-    touch .env
-    echo APP_ENV=dev >> .env
-    echo DATABASE_URL=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB >> .env
-    echo SECRET_KEY=$(openssl rand -hex 32) >> .env
+如果容器已存在，只需要启动：
 
-To run the web application in debug use::
+```bash
+docker start rw-pgvector
+```
 
-    alembic upgrade head
-    uvicorn app.main:app --reload
+### 5.3 配置环境变量
 
-If you run into the following error in your docker container:
+复制示例配置：
 
-   sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not connect to server: No such file or directory
-   Is the server running locally and accepting
-   connections on Unix domain socket "/tmp/.s.PGSQL.5432"?
+```bash
+cp .env.example .env
+```
 
-Ensure the DATABASE_URL variable is set correctly in the `.env` file.
-It is most likely caused by POSTGRES_HOST not pointing to its localhost.
+关键配置如下：
 
-   DATABASE_URL=postgresql://postgres:postgres@0.0.0.0:5432/rwdb
+```env
+APP_ENV=dev
+DEBUG=true
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwdb
+SECRET_KEY=secret
+ADMIN_USERNAMES=["admin"]
 
+LLM_BASE_URL=http://127.0.0.1:8000/v1
+LLM_API_KEY=
+LLM_MODEL=qwen3-8b
+LLM_TIMEOUT_SECONDS=30
 
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+EMBEDDING_DIMENSIONS=384
+EMBEDDING_ALLOW_DOWNLOAD=false
+EMBEDDING_FALLBACK_ENABLED=true
 
-Run tests
----------
+AI_COMMENT_MODERATION_MODE=block
+AI_ARTICLE_REVIEW_ON_PUBLISH=true
+AI_ARTICLE_MIN_CONTENT_SCORE=50
+```
 
-Tests for this project are defined in the ``tests/`` folder.
+说明：
 
-Set up environment variable ``DATABASE_URL`` or set up ``database_url`` in ``app/core/settings/test.py``
+- `LLM_BASE_URL` 需要指向 OpenAI-compatible 的本地模型服务。
+- 如果没有启动真实模型服务，稳定测试仍然可以运行，但前端中依赖真实模型的 AI 功能会不可用。
+- `EMBEDDING_FALLBACK_ENABLED=true` 可以在本地没有语义模型缓存时使用哈希向量回退。
 
-This project uses `pytest
-<https://docs.pytest.org/>`_ to define tests because it allows you to use the ``assert`` keyword with good formatting for failed assertations.
+### 5.4 执行数据库迁移
 
+```bash
+DEBUG=true .venv/bin/alembic upgrade head
+```
 
-To run all the tests of a project, simply run the ``pytest`` command: ::
+### 5.5 初始化演示数据
 
-    $ pytest
-    ================================================= test session starts ==================================================
-    platform linux -- Python 3.8.3, pytest-5.4.2, py-1.8.1, pluggy-0.13.1
-    rootdir: /home/some-user/user-projects/fastapi-realworld-example-app, inifile: setup.cfg, testpaths: tests
-    plugins: env-0.6.2, cov-2.9.0, asyncio-0.12.0
-    collected 90 items
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwdb \
+DEBUG=true .venv/bin/python scripts/seed_demo_data.py
+```
 
-    tests/test_api/test_errors/test_422_error.py .                                                                   [  1%]
-    tests/test_api/test_errors/test_error.py .                                                                       [  2%]
-    tests/test_api/test_routes/test_articles.py .................................                                    [ 38%]
-    tests/test_api/test_routes/test_authentication.py ..                                                             [ 41%]
-    tests/test_api/test_routes/test_comments.py ....                                                                 [ 45%]
-    tests/test_api/test_routes/test_login.py ...                                                                     [ 48%]
-    tests/test_api/test_routes/test_profiles.py ............                                                         [ 62%]
-    tests/test_api/test_routes/test_registration.py ...                                                              [ 65%]
-    tests/test_api/test_routes/test_tags.py ..                                                                       [ 67%]
-    tests/test_api/test_routes/test_users.py ....................                                                    [ 90%]
-    tests/test_db/test_queries/test_tables.py ...                                                                    [ 93%]
-    tests/test_schemas/test_rw_model.py .                                                                            [ 94%]
-    tests/test_services/test_jwt.py .....                                                                            [100%]
+### 5.6 启动后端
 
-    ============================================ 90 passed in 70.50s (0:01:10) =============================================
-    $
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwdb \
+DEBUG=true .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+```
 
-If you want to run a specific test, you can do this with `this
-<https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests>`_ pytest feature: ::
+后端接口地址：
 
-    $ pytest tests/test_api/test_routes/test_users.py::test_user_can_not_take_already_used_credentials
+```text
+http://127.0.0.1:8010/api
+```
 
-Deployment with Docker
-----------------------
+接口文档：
 
-You must have ``docker`` and ``docker-compose`` tools installed to work with material in this section.
-First, create ``.env`` file like in `Quickstart` section or modify ``.env.example``.
-``POSTGRES_HOST`` must be specified as `db` or modified in ``docker-compose.yml`` also.
-Then just run::
+```text
+http://127.0.0.1:8010/docs
+```
 
-    docker-compose up -d db
-    docker-compose up -d app
+### 5.7 启动静态演示前端
 
-Application will be available on ``localhost`` in your browser.
+```bash
+cd demo
+../.venv/bin/python -m http.server 5174 --bind 127.0.0.1
+```
 
-Web routes
-----------
+前端访问地址：
 
-All routes are available on ``/docs`` or ``/redoc`` paths with Swagger or ReDoc.
+```text
+http://127.0.0.1:5174
+```
 
+如果端口被占用，可以将 `5174` 换成其他端口。
 
-Project structure
------------------
+## 6. 测试命令
 
-Files related to application are in the ``app`` or ``tests`` directories.
-Application parts are:
+### 6.1 AI 服务层稳定测试
 
-::
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+DEBUG=true .venv/bin/python -m pytest \
+tests/test_services/test_ai_services.py \
+tests/test_services/test_article_polish.py \
+tests/test_services/test_cross_reranker.py \
+-q --no-cov -n 0
+```
 
-    app
-    ├── api              - web related stuff.
-    │   ├── dependencies - dependencies for routes definition.
-    │   ├── errors       - definition of error handlers.
-    │   └── routes       - web routes.
-    ├── core             - application configuration, startup events, logging.
-    ├── db               - db related stuff.
-    │   ├── migrations   - manually written alembic migrations.
-    │   └── repositories - all crud stuff.
-    ├── models           - pydantic models for this application.
-    │   ├── domain       - main models that are used almost everywhere.
-    │   └── schemas      - schemas for using in web routes.
-    ├── resources        - strings that are used in web responses.
-    ├── services         - logic that is not just crud related.
-    └── main.py          - FastAPI application creation and configuration.
+本地验证结果：`28 passed`。
+
+### 6.2 管理员与评论治理测试
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+DEBUG=true .venv/bin/python -m pytest \
+tests/test_api/test_routes/test_admin.py \
+tests/test_api/test_routes/test_comments.py \
+-q --no-cov -n 0
+```
+
+本地验证结果：`20 passed`。
+
+### 6.3 文章 AI 与文章库问答接口测试
+
+不开真实 AI 时，真实接口调用用例会跳过：
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+DEBUG=true .venv/bin/python -m pytest \
+tests/test_api/test_routes/test_articles.py::test_user_can_analyze_article_with_ai \
+tests/test_api/test_routes/test_articles.py::test_user_can_get_recommended_articles \
+tests/test_api/test_routes/test_articles.py::test_user_can_ask_article_library_ai \
+tests/test_api/test_routes/test_articles.py::test_user_can_get_recommendations_with_embedding_fallback \
+tests/test_api/test_routes/test_articles_real_ai.py \
+-q --no-cov -n 0
+```
+
+本地验证结果：`4 passed, 2 skipped`。
+
+如果本地大语言模型服务已启动，可以开启真实 AI 调用：
+
+```bash
+RUN_REAL_AI_TESTS=1 \
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+DEBUG=true .venv/bin/python -m pytest \
+tests/test_api/test_routes/test_articles.py::test_user_can_analyze_article_with_ai \
+tests/test_api/test_routes/test_articles.py::test_user_can_get_recommended_articles \
+tests/test_api/test_routes/test_articles.py::test_user_can_ask_article_library_ai \
+tests/test_api/test_routes/test_articles.py::test_user_can_get_recommendations_with_embedding_fallback \
+tests/test_api/test_routes/test_articles_real_ai.py \
+-q --no-cov -n 0
+```
+
+### 6.4 真实 AI 服务层测试
+
+该测试直接调用本地模型服务，默认不运行。
+
+```bash
+RUN_REAL_AI_TESTS=1 \
+DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+DEBUG=true .venv/bin/python -m pytest \
+tests/test_services/test_real_ai_integration.py \
+-q --no-cov -n 0
+```
+
+## 7. 演示建议
+
+推荐按以下顺序向老师展示：
+
+1. 打开文章列表和文章详情，展示普通阅读流程。
+2. 点击顶部文章库助手图标，输入自然语言问题，展示 RAG 问答和来源文章跳转。
+3. 进入写作页，展示草稿分析、建议改写和 AI 润色。
+4. 进入管理员页面，展示平台概览、待审核队列、文章/评论管理、举报处理、审计日志和通知。
+5. 运行上方三组测试命令，截图命令行结果和代表性测试代码。
+
+## 8. 备注
+
+- 原项目说明仍保留在 `README.md`。
+- 本文件是课程项目拓展版说明，适合上传 GitHub 后供老师快速了解改动内容。
+- 真实 AI 测试依赖本地 OpenAI-compatible 模型服务；如果模型服务未启动，请使用稳定测试命令或先启动模型服务。
