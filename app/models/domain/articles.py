@@ -10,6 +10,7 @@ class Article(IDModelMixin, DateTimeModelMixin, RWModel):
     title: str
     description: str
     body: str
+    content_status: str = "visible"
     tags: List[str]
     author: Profile
     favorited: bool

@@ -1,15 +1,18 @@
 -- name: get-comments-for-article-by-slug
 SELECT c.id,
        c.body,
+       c.content_status,
        c.created_at,
        c.updated_at,
        (SELECT username FROM users WHERE id = c.author_id) as author_username
 FROM commentaries c
-         INNER JOIN articles a ON c.article_id = a.id AND (a.slug = :slug);
+         INNER JOIN articles a ON c.article_id = a.id AND (a.slug = :slug)
+WHERE c.content_status = 'visible';
 
 -- name: get-comment-by-id-and-slug^
 SELECT c.id,
        c.body,
+       c.content_status,
        c.created_at,
        c.updated_at,
        (SELECT username FROM users WHERE id = c.author_id) as author_username
@@ -22,13 +25,15 @@ WITH users_subquery AS (
         (SELECT id, username FROM users WHERE username = :author_username)
 )
 INSERT
-INTO commentaries (body, author_id, article_id)
+INTO commentaries (body, author_id, article_id, content_status)
 VALUES (:body,
         (SELECT id FROM users_subquery),
-        (SELECT id FROM articles WHERE slug = :article_slug))
+        (SELECT id FROM articles WHERE slug = :article_slug),
+        :content_status)
 RETURNING
     id,
     body,
+    content_status,
         (SELECT username FROM users_subquery) AS author_username,
     created_at,
     updated_at;

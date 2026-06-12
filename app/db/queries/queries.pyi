@@ -56,7 +56,13 @@ class CommentsQueriesMixin:
         self, conn: Connection, *, comment_id: int, article_slug: str
     ) -> Record: ...
     async def create_new_comment(
-        self, conn: Connection, *, body: str, article_slug: str, author_username: str
+        self,
+        conn: Connection,
+        *,
+        body: str,
+        article_slug: str,
+        author_username: str,
+        content_status: str
     ) -> Record: ...
     async def delete_comment_by_id(
         self, conn: Connection, *, comment_id: int, author_username: str
@@ -87,7 +93,8 @@ class ArticlesQueriesMixin:
         title: str,
         description: str,
         body: str,
-        author_username: str
+        author_username: str,
+        content_status: str
     ) -> Record: ...
     async def add_tags_to_article(
         self, conn: Connection, tags_slugs: Sequence[Dict[str, str]]

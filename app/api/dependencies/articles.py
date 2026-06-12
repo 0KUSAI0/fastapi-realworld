@@ -20,6 +20,7 @@ from app.services.articles import check_user_can_modify_article
 
 def get_articles_filters(
     tag: Optional[str] = None,
+    q: Optional[str] = None,
     author: Optional[str] = None,
     favorited: Optional[str] = None,
     limit: int = Query(DEFAULT_ARTICLES_LIMIT, ge=1),
@@ -27,6 +28,7 @@ def get_articles_filters(
 ) -> ArticlesFilters:
     return ArticlesFilters(
         tag=tag,
+        q=q,
         author=author,
         favorited=favorited,
         limit=limit,
@@ -48,8 +50,26 @@ async def get_article_by_slug_from_path(
         )
 
 
+async def get_article_by_slug_for_author_from_path(
+    slug: str = Path(..., min_length=1),
+    user: User = Depends(get_current_user_authorizer()),
+    articles_repo: ArticlesRepository = Depends(get_repository(ArticlesRepository)),
+) -> Article:
+    try:
+        article = await articles_repo.get_article_by_slug_any_status(
+            slug=slug,
+            requested_user=user,
+        )
+    except EntityDoesNotExist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=strings.ARTICLE_DOES_NOT_EXIST_ERROR,
+        )
+    return article
+
+
 def check_article_modification_permissions(
-    current_article: Article = Depends(get_article_by_slug_from_path),
+    current_article: Article = Depends(get_article_by_slug_for_author_from_path),
     user: User = Depends(get_current_user_authorizer()),
 ) -> None:
     if not check_user_can_modify_article(current_article, user):

@@ -43,6 +43,7 @@ class Articles(TypedTable):
     title: str
     description: str
     body: str
+    content_status: str
     author_id: int
     created_at: datetime
     updated_at: datetime

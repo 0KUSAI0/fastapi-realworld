@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conduit Admin</title>
+    <link rel="stylesheet" href="./style.css?v=20260606-admin-fix4" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">A</div>
+          <div>
+            <strong>Conduit</strong>
+            <span>Admin</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-admin-view="overviewView" type="button">总览</button>
+          <button class="nav-item" data-admin-view="moderationView" type="button">审核</button>
+          <button class="nav-item" data-admin-view="reportsView" type="button">举报</button>
+          <button class="nav-item" data-admin-view="auditView" type="button">审计</button>
+          <button class="nav-item" data-admin-view="articlesView" type="button">文章</button>
+          <button class="nav-item" data-admin-view="commentsView" type="button">评论</button>
+          <a class="nav-item nav-link" href="./index.html">返回站点</a>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p id="adminEyebrow" class="eyebrow">Admin</p>
+            <h1 id="adminViewTitle">数据总览</h1>
+          </div>
+          <div class="account-chip">
+            <span id="adminAccountName">未登录</span>
+            <button id="adminLogoutBtn" class="ghost" type="button">退出</button>
+          </div>
+        </header>
+
+        <section id="adminAuthView" class="auth-screen">
+          <div class="auth-copy">
+            <p class="eyebrow">Admin</p>
+            <h2>Conduit 管理后台</h2>
+            <p>审核内容、管理文章与评论，并查看平台运行概览。</p>
+            <div class="auth-visual" aria-hidden="true">
+              <img
+                alt=""
+                src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80"
+              />
+              <div class="auth-note">
+                <span>Operations</span>
+                <strong>审核、管理、总览</strong>
+              </div>
+            </div>
+          </div>
+          <div class="auth-card">
+            <div class="tabs">
+              <button class="tab active" data-admin-auth-mode="login" type="button">登录</button>
+              <button class="tab" data-admin-auth-mode="register" type="button">注册</button>
+            </div>
+            <label id="adminUsernameField" class="hidden">
+              用户名
+              <input id="adminUsername" value="admin" autocomplete="username" />
+            </label>
+            <label>
+              邮箱
+              <input id="adminEmail" value="admin@example.com" autocomplete="email" />
+            </label>
+            <label>
+              密码
+              <input id="adminPassword" type="password" value="password" autocomplete="current-password" />
+            </label>
+            <button id="adminAuthSubmitBtn" type="button">登录</button>
+            <p id="adminAuthHint" class="hint">使用管理员账号进入后台。</p>
+          </div>
+        </section>
+
+        <section id="overviewView" class="view active">
+          <div class="section-heading">
+            <p class="eyebrow">Overview</p>
+            <h2>数据总览</h2>
+          </div>
+          <div class="overview-layout">
+            <section class="admin-panel">
+              <div class="panel-title">
+                <h2>平台指标</h2>
+                <button id="loadOverviewBtn" class="ghost" type="button">刷新</button>
+              </div>
+              <div id="overviewStats" class="stats-grid admin-stats-wide"></div>
+            </section>
+            <div class="overview-charts">
+              <section class="admin-panel chart-panel">
+                <div class="panel-title">
+                  <h2>内容规模</h2>
+                </div>
+                <div id="contentScaleChart" class="chart-bars"></div>
+              </section>
+              <section class="admin-panel chart-panel">
+                <div class="panel-title">
+                  <h2>审核状态</h2>
+                </div>
+                <div id="moderationStatusChart" class="donut-grid"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section id="moderationView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Moderation</p>
+            <h2>内容审核</h2>
+          </div>
+          <div class="moderation-layout">
+            <section class="admin-panel">
+              <div class="panel-title">
+                <h2>审核概览</h2>
+                <button id="loadModerationBtn" class="ghost" type="button">刷新</button>
+              </div>
+              <div id="moderationStats" class="stats-grid moderation-stats-grid"></div>
+            </section>
+            <section class="admin-panel">
+              <div class="panel-title">
+                <h2>评论审核</h2>
+              </div>
+              <div class="toolbar admin-toolbar">
+                <label class="status-select">
+                  状态
+                  <select id="commentModerationStatus">
+                    <option value="pending">待审核</option>
+                    <option value="approved">已通过</option>
+                    <option value="rejected">未通过</option>
+                    <option value="all">全部</option>
+                  </select>
+                </label>
+                <label class="search">
+                  搜索评论
+                  <input id="commentModerationQuery" placeholder="评论、文章、作者或风险原因" />
+                </label>
+                <button id="searchCommentModerationBtn" type="button">搜索</button>
+                <div class="actions compact-actions batch-actions inline-batch-actions">
+                  <button id="approveSelectedCommentsBtn" class="ghost" type="button">批量放行</button>
+                  <button id="rejectSelectedCommentsBtn" class="ghost danger-action" type="button">批量驳回</button>
+                </div>
+              </div>
+              <div id="commentModerationQueue" class="moderation-queue review-board"></div>
+              <div id="commentModerationPager" class="pager"></div>
+            </section>
+            <section class="admin-panel">
+              <div class="panel-title">
+                <h2>文章审核</h2>
+              </div>
+              <div class="toolbar admin-toolbar">
+                <label class="status-select">
+                  状态
+                  <select id="articleModerationStatus">
+                    <option value="pending">待审核</option>
+                    <option value="approved">已通过</option>
+                    <option value="rejected">未通过</option>
+                    <option value="all">全部</option>
+                  </select>
+                </label>
+                <label class="search">
+                  搜索文章
+                  <input id="articleModerationQuery" placeholder="标题、正文、作者或摘要" />
+                </label>
+                <button id="searchArticleModerationBtn" type="button">搜索</button>
+                <div class="actions compact-actions batch-actions inline-batch-actions">
+                  <button id="approveSelectedArticlesBtn" class="ghost" type="button">批量放行</button>
+                  <button id="rejectSelectedArticlesBtn" class="ghost danger-action" type="button">批量驳回</button>
+                </div>
+              </div>
+              <div id="articleModerationQueue" class="moderation-queue review-board"></div>
+              <div id="articleModerationPager" class="pager"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="articlesView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Articles</p>
+            <h2>文章管理</h2>
+          </div>
+          <section class="admin-panel">
+            <div class="toolbar admin-toolbar">
+              <label class="status-select">
+                状态
+                <select id="adminArticleStatus">
+                  <option value="visible">显示中</option>
+                  <option value="hidden">不显示</option>
+                  <option value="pending">待审核</option>
+                  <option value="all">全部</option>
+                </select>
+              </label>
+              <label class="search">
+                搜索文章
+                <input id="adminArticleQuery" placeholder="标题、摘要、正文或标签" />
+              </label>
+              <button id="loadAdminArticlesBtn" type="button">搜索</button>
+            </div>
+            <div id="adminArticlesList" class="admin-list"></div>
+            <div id="adminArticlesPager" class="pager"></div>
+          </section>
+        </section>
+
+        <section id="reportsView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Reports</p>
+            <h2>用户举报</h2>
+          </div>
+          <section class="admin-panel">
+            <div class="toolbar admin-toolbar">
+              <label class="status-select">
+                状态
+                <select id="reportStatus">
+                  <option value="pending">待处理</option>
+                  <option value="resolved">已采纳</option>
+                  <option value="ignored">已驳回</option>
+                  <option value="all">全部</option>
+                </select>
+              </label>
+              <label class="status-select">
+                类型
+                <select id="reportType">
+                  <option value="all">全部</option>
+                  <option value="article">文章</option>
+                  <option value="comment">评论</option>
+                </select>
+              </label>
+              <label class="search">
+                搜索举报
+                <input id="reportQuery" placeholder="原因、内容、文章或用户" />
+              </label>
+              <button id="loadReportsBtn" type="button">搜索</button>
+              <div class="actions compact-actions batch-actions inline-batch-actions">
+                <button id="ignoreSelectedReportsBtn" class="ghost" type="button">批量驳回请求</button>
+                <button id="hideSelectedReportsBtn" class="ghost danger-action" type="button">批量接受并隐藏</button>
+              </div>
+            </div>
+            <div id="reportsList" class="admin-list"></div>
+            <div id="reportsPager" class="pager"></div>
+          </section>
+        </section>
+
+        <section id="auditView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Audit</p>
+            <h2>审核历史</h2>
+          </div>
+          <section class="admin-panel">
+            <div class="toolbar admin-toolbar">
+              <label class="status-select">
+                类型
+                <select id="auditType">
+                  <option value="all">全部</option>
+                  <option value="article">文章</option>
+                  <option value="comment">评论</option>
+                </select>
+              </label>
+              <label class="search">
+                搜索历史
+                <input id="auditQuery" placeholder="文章、操作人、动作或备注" />
+              </label>
+              <button id="loadAuditBtn" type="button">搜索</button>
+              <button id="exportAuditBtn" class="ghost" type="button">导出</button>
+            </div>
+            <div id="auditList" class="admin-list"></div>
+            <div id="auditPager" class="pager"></div>
+          </section>
+        </section>
+
+        <section id="commentsView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Comments</p>
+            <h2>评论管理</h2>
+          </div>
+          <section class="admin-panel">
+            <div class="tabs notification-state-tabs">
+              <button class="tab active" data-admin-comment-mode="threads" type="button">按文章聚合</button>
+              <button class="tab" data-admin-comment-mode="comments" type="button">按评论明细</button>
+            </div>
+            <div class="toolbar admin-toolbar">
+              <label class="status-select">
+                状态
+                <select id="adminCommentStatus">
+                  <option value="visible">显示中</option>
+                  <option value="hidden">不显示</option>
+                  <option value="pending">待审核</option>
+                  <option value="all">全部</option>
+                </select>
+              </label>
+              <label class="search">
+                搜索评论
+                <input id="adminCommentQuery" placeholder="评论、文章或作者" />
+              </label>
+              <button id="loadAdminCommentsBtn" type="button">搜索</button>
+            </div>
+            <div id="adminCommentsList" class="admin-list"></div>
+            <div id="adminCommentsPager" class="pager"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="noteModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-panel note-modal">
+        <div class="modal-hero">
+          <div>
+            <p class="eyebrow">Note</p>
+            <h2 id="noteModalTitle">处理备注</h2>
+            <p id="noteModalHint" class="modal-copy">请输入本次处理的说明，只有确认后才会执行。</p>
+          </div>
+          <button id="noteModalCancelIconBtn" class="ghost icon-button" type="button" aria-label="关闭">×</button>
+        </div>
+        <label>
+          备注
+          <textarea id="noteModalInput" rows="5" placeholder="输入这次处理的原因或依据"></textarea>
+        </label>
+        <div class="actions">
+          <button id="noteModalCancelBtn" class="ghost" type="button">取消</button>
+          <button id="noteModalConfirmBtn" type="button">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="articleModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-panel article-modal">
+        <div class="panel-title">
+          <div>
+            <p class="eyebrow">Article</p>
+            <h2 id="articleModalTitle">文章详情</h2>
+          </div>
+          <button id="articleModalCloseBtn" class="ghost" type="button">关闭</button>
+        </div>
+        <div id="articleModalBody" class="article-detail"></div>
+        <section class="detail-section">
+          <div class="panel-title">
+            <div>
+              <p class="eyebrow">Comments</p>
+              <h3>评论线程</h3>
+            </div>
+          </div>
+          <div id="articleModalComments" class="admin-list article-thread-list"></div>
+        </section>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="./admin.js?v=20260606-admin-fix4"></script>
+  </body>
+</html>

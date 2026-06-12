@@ -1,0 +1,4 @@
+export HF_ENDPOINT=https://hf-mirror.com
+DEBUG=true .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+cd demo
+../.venv/bin/python -m http.server 5174 --bind 127.0.0.1

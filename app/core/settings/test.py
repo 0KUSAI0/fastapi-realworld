@@ -16,4 +16,12 @@ class TestAppSettings(AppSettings):
     max_connection_count: int = 5
     min_connection_count: int = 5
 
+    ai_comment_moderation_mode: str = "off"
+    ai_article_review_on_publish: bool = False
+    admin_usernames: list = ["username"]
+
     logging_level: int = logging.DEBUG
+
+    class Config:
+        env_file = None
+        validate_assignment = True

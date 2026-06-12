@@ -29,6 +29,78 @@
 
 More modern and relevant examples can be found in other repositories with ``fastapi`` tag on GitHub.
 
+AI Course Project Notes
+-----------------------
+
+This fork adds three AI features on top of the original RealWorld backend:
+
+* AI article assistant: ``POST /api/articles/ai/analyze`` calls a vLLM OpenAI-compatible Qwen3-8B service and returns a structured draft review.
+* AI suggestion revision loop: ``POST /api/articles/ai/revise-suggestion`` rewrites the draft for one selected analysis suggestion and returns a before/after diff for user confirmation.
+* AI article library assistant: ``POST /api/articles/ai/ask`` retrieves relevant articles with semantic search and answers questions from those sources.
+* AI comment moderation: ``POST /api/articles/{slug}/comments/ai/moderate`` checks a draft comment; normal comment creation can also moderate in ``log`` or ``block`` mode.
+* AI related article recommendation: ``GET /api/articles/{slug}/recommendations`` uses ``sentence-transformers/all-MiniLM-L6-v2`` embeddings and pgvector cosine search.
+
+For this local setup the application database is ``rwdb`` and the isolated test database is ``rwtest``. Keeping them separate avoids demo data changing test counts.
+
+Local AI Demo Quickstart
+------------------------
+
+Start PostgreSQL with pgvector on a user-scoped localhost port::
+
+    docker run --name rw-pgvector \
+      -e POSTGRES_USER=postgres \
+      -e POSTGRES_PASSWORD=postgres \
+      -e POSTGRES_DB=rwdb \
+      -p 127.0.0.1:15432:5432 \
+      -v "$PWD/postgres-data-pgvector:/var/lib/postgresql/data" \
+      -d pgvector/pgvector:pg16
+
+Create the separate test database once::
+
+    docker exec rw-pgvector createdb -U postgres rwtest
+
+Use ``.env.example`` as the base for ``.env``. The important AI settings are::
+
+    LLM_BASE_URL=http://127.0.0.1:8000/v1
+    LLM_API_KEY=
+    LLM_MODEL=qwen3-8b
+    EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+    EMBEDDING_ALLOW_DOWNLOAD=false
+    EMBEDDING_FALLBACK_ENABLED=true
+    AI_COMMENT_MODERATION_MODE=block
+    AI_ARTICLE_REVIEW_ON_PUBLISH=true
+    AI_ARTICLE_MIN_CONTENT_SCORE=50
+
+``AI_COMMENT_MODERATION_MODE=block`` makes normal comment publishing call the moderation model first and reject unsafe comments before they are saved. Use ``log`` to record moderation decisions without blocking, or ``off`` to disable automatic moderation during normal comment creation.
+
+``AI_ARTICLE_REVIEW_ON_PUBLISH=true`` makes article publishing call the article assistant before insertion. Articles below ``AI_ARTICLE_MIN_CONTENT_SCORE`` or with risk labels are rejected before they are stored.
+
+``EMBEDDING_ALLOW_DOWNLOAD=false`` keeps the recommendation service offline-friendly. If ``sentence-transformers/all-MiniLM-L6-v2`` is not already cached locally, ``EMBEDDING_FALLBACK_ENABLED=true`` lets recommendations use a deterministic local hashing embedding instead of failing. To use the real MiniLM embedding, pre-download the model into the HuggingFace cache or set ``EMBEDDING_CACHE_FOLDER`` to a local model cache.
+
+On this shared machine, prefix startup and test commands with ``DEBUG=true``. A shell-level value such as ``DEBUG=release`` overrides ``.env`` and is not a valid boolean for this project.
+
+Run migrations for the demo database::
+
+    DEBUG=true .venv/bin/alembic upgrade head
+
+Run the backend on a free port, for example ``8010``::
+
+    DEBUG=true .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+
+Serve the static demo frontend::
+
+    cd demo
+    ../.venv/bin/python -m http.server 5173 --bind 127.0.0.1
+
+Open ``http://127.0.0.1:5173`` and keep the API address as ``http://127.0.0.1:8010/api``.
+
+Run the regression tests against ``rwtest``::
+
+    DATABASE_URL=postgresql://postgres:postgres@localhost:15432/rwtest \
+      DEBUG=true .venv/bin/python -m pytest -q --no-cov -n 0
+
+The default tests use fake LLM clients, so they do not require vLLM to be running. Real model behavior should be checked manually through the demo UI or through targeted integration tests because LLM wording is nondeterministic.
+
 Quickstart
 ----------
 

@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conduit</title>
+    <link rel="stylesheet" href="./style.css?v=20260612-report1" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">C</div>
+          <div>
+            <strong>Conduit</strong>
+            <span>Journal</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="feedView" type="button">发现</button>
+          <button class="nav-item" data-view="editorView" type="button">写作</button>
+          <button class="nav-item" data-view="readerView" type="button">阅读</button>
+          <button class="nav-item" data-view="profileView" type="button">账号</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p id="eyebrow" class="eyebrow">Conduit</p>
+            <h1 id="viewTitle">发现文章</h1>
+          </div>
+          <div class="account-chip">
+            <button
+              id="articleLibraryToggleBtn"
+              class="ghost icon-button assistant-entry"
+              type="button"
+              aria-label="打开文章库助手"
+              title="文章库助手"
+            ><span class="assistant-entry-icon" aria-hidden="true"></span></button>
+            <span id="accountName">未登录</span>
+            <button id="logoutBtn" class="ghost" type="button">退出</button>
+          </div>
+        </header>
+
+        <section id="authView" class="auth-screen">
+          <div class="auth-copy">
+            <p class="eyebrow">Conduit</p>
+            <h2>面向创作者和读者的现代博客社区</h2>
+            <p>
+              发现文章、撰写长文、参与讨论，并在阅读时继续找到相关内容。
+            </p>
+            <div class="auth-visual" aria-hidden="true">
+              <img
+                alt=""
+                src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=80"
+              />
+              <div class="auth-note">
+                <span>Journal</span>
+                <strong>写作、阅读、讨论</strong>
+              </div>
+            </div>
+          </div>
+          <div class="auth-card">
+            <div class="tabs">
+              <button class="tab active" data-auth-mode="login" type="button">登录</button>
+              <button class="tab" data-auth-mode="register" type="button">注册</button>
+            </div>
+            <label id="usernameField" class="hidden">
+              用户名
+              <input id="username" value="demo" autocomplete="username" />
+            </label>
+            <label>
+              邮箱
+              <input id="email" value="demo@example.com" autocomplete="email" />
+            </label>
+            <label>
+              密码
+              <input id="password" type="password" value="password" autocomplete="current-password" />
+            </label>
+            <button id="authSubmitBtn" type="button">登录</button>
+            <p id="authHint" class="hint">没有账号时切换到注册。</p>
+          </div>
+        </section>
+
+        <section id="feedView" class="view active">
+          <div class="feed-intro">
+            <div>
+              <p class="eyebrow">Stories</p>
+              <h2>编辑部精选</h2>
+            </div>
+            <div class="feed-metric">
+              <strong id="articleCount">0</strong>
+              <span>articles</span>
+            </div>
+          </div>
+          <div class="toolbar">
+            <label class="search">
+              模糊搜索
+              <input id="filterQuery" placeholder="标题、摘要、正文或标签" />
+            </label>
+            <button id="loadArticlesBtn" type="button">加载文章</button>
+          </div>
+          <div id="articleGrid" class="article-grid"></div>
+          <div id="articlePager" class="pager"></div>
+        </section>
+
+        <section id="editorView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Write</p>
+            <h2>创作一篇新文章</h2>
+          </div>
+          <div class="editor-stack">
+            <div class="editor-grid">
+              <article class="compose-panel">
+                <label>
+                  标题
+                  <input id="articleTitle" value="城市散步为什么能修复工作日前半程的节奏" />
+                </label>
+                <label>
+                  描述
+                  <input id="articleDescription" value="一篇关于通勤、步行和注意力切换的小观察。" />
+                </label>
+                <label>
+                  标签
+                  <input id="articleTags" value="城市生活,散步,专注" />
+                </label>
+                <label class="body-field">
+                  正文
+                  <textarea id="articleBody" rows="14">我最近发现，很多工作日前半程的不顺，不是任务太难，而是进入状态的方式太急。起床、看消息、打开电脑、立刻回到对话框里，这一串动作都在把注意力拉扯得很碎。如果把其中一段换成二十分钟的步行，大脑像是先有了一个缓冲带，再慢慢进入工作。</textarea>
+                </label>
+                <div class="actions">
+                  <button id="analyzeBtn" type="button">分析草稿</button>
+                  <button id="publishBtn" class="secondary" type="button">发布文章</button>
+                </div>
+              </article>
+              <aside class="editor-sidebar">
+                <section class="ai-panel analysis-panel">
+                  <p class="eyebrow">Review</p>
+                  <h2>草稿分析</h2>
+                  <div id="analysisResult" class="analysis-empty">
+                    点击“分析草稿”查看摘要、标签、质量评分和修改建议。
+                  </div>
+                </section>
+                <section class="ai-panel draft-panel">
+                  <div class="panel-title">
+                    <h2>草稿版本</h2>
+                    <div class="actions compact-actions">
+                      <button id="saveDraftBtn" class="ghost" type="button">保存</button>
+                      <button id="clearDraftsBtn" class="ghost danger-action" type="button">清空</button>
+                    </div>
+                  </div>
+                  <div id="draftVersions" class="draft-list"></div>
+                </section>
+              </aside>
+            </div>
+            <section class="ai-panel polish-panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Polish</p>
+                  <h2>AI 润色</h2>
+                </div>
+                <button id="polishBtn" class="ghost" type="button">润色正文</button>
+              </div>
+              <label>
+                润色指令
+                <input
+                  id="polishInstruction"
+                  value="使语言更简洁，提升表达流畅度"
+                  placeholder="例：使语言更简洁，删除冗余表达"
+                />
+              </label>
+              <div id="polishResult" class="polish-empty">
+                点击“润色正文”，AI 将对正文进行 Critique → Revise → Verify 三阶段润色并生成逐句对比。
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="readerView" class="view">
+          <div class="reader-layout">
+            <article id="readerArticle" class="reader-article empty">
+              从文章列表选择一篇文章开始阅读。
+            </article>
+            <section class="recommendation-panel">
+              <div class="panel-title">
+                <h2>相关推荐</h2>
+                <div class="actions compact-actions">
+                  <button id="loadRecommendationsBtn" class="ghost" type="button">刷新</button>
+                  <button id="rotateRecommendationsBtn" class="ghost" type="button">换一批</button>
+                </div>
+              </div>
+              <div id="recommendationsList" class="recommendation-list">
+                选择文章后可加载相关推荐。
+              </div>
+            </section>
+          </div>
+          <section class="comment-panel reader-comments">
+            <div class="panel-title">
+              <h2>评论</h2>
+              <span class="mini-badge">自动审核</span>
+            </div>
+            <div id="commentsList" class="comment-list"></div>
+            <div id="commentsPager" class="pager"></div>
+            <label>
+              新评论
+              <textarea id="commentBody" rows="4">这篇文章让我想到自己最近的一些通勤观察。</textarea>
+            </label>
+            <div class="actions">
+              <button id="commentBtn" type="button">发表</button>
+            </div>
+            <div id="moderationResult" class="moderation-empty">
+              评论将在发表前自动审核。
+            </div>
+          </section>
+        </section>
+
+        <section id="profileView" class="view">
+          <div class="section-heading">
+            <p class="eyebrow">Profile</p>
+            <h2>个人中心</h2>
+          </div>
+          <div class="profile-layout">
+            <div class="profile-card">
+              <div class="avatar" id="avatar">?</div>
+              <div>
+                <p class="eyebrow">账号信息</p>
+                <h2 id="profileName">未登录</h2>
+                <p id="profileEmail" class="muted">登录后显示邮箱。</p>
+              </div>
+            </div>
+            <section class="comment-panel">
+              <div class="panel-title">
+                <h2>我的内容</h2>
+                <button id="loadUserContentBtn" class="ghost" type="button">刷新</button>
+              </div>
+              <div id="userContentOverview" class="stats-grid"></div>
+              <div class="tabs notification-state-tabs">
+                <button class="tab active" data-user-content-tab="articles" type="button">我的文章</button>
+                <button class="tab" data-user-content-tab="comments" type="button">我的评论</button>
+              </div>
+              <div class="toolbar">
+                <label class="status-select">
+                  状态
+                  <select id="userContentStatus">
+                    <option value="all">全部</option>
+                    <option value="visible">显示中</option>
+                    <option value="pending">待审核</option>
+                    <option value="hidden">不显示</option>
+                  </select>
+                </label>
+                <label class="search">
+                  搜索内容
+                  <input id="userContentQuery" placeholder="标题、标签、正文或评论内容" />
+                </label>
+              </div>
+              <div id="userContentList" class="admin-list"></div>
+            </section>
+            <section class="comment-panel">
+              <div class="panel-title">
+                <h2>我的收藏</h2>
+                <button id="loadFavoriteArticlesBtn" class="ghost" type="button">刷新</button>
+              </div>
+              <div id="favoriteArticlesList" class="admin-list"></div>
+            </section>
+            <section class="comment-panel">
+              <div class="panel-title">
+                <h2>通知</h2>
+                <button id="loadNotificationsBtn" class="ghost" type="button">刷新</button>
+              </div>
+              <div class="tabs notification-tabs">
+                <button class="tab active" data-notification-filter="article" type="button">文章审核</button>
+                <button class="tab" data-notification-filter="comment" type="button">评论审核</button>
+                <button class="tab" data-notification-filter="report" type="button">举报结果</button>
+              </div>
+              <div class="tabs notification-state-tabs">
+                <button class="tab active" data-notification-read-filter="all" type="button">全部</button>
+                <button class="tab" data-notification-read-filter="unread" type="button">未读</button>
+                <button class="tab" data-notification-read-filter="read" type="button">已读</button>
+              </div>
+              <div id="notificationsList" class="admin-list"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <aside id="articleLibraryDrawer" class="assistant-drawer hidden" role="dialog" aria-modal="true" aria-labelledby="articleLibraryDrawerTitle">
+      <div class="assistant-drawer-panel">
+        <div class="modal-hero">
+          <div>
+            <p class="eyebrow">Ask</p>
+            <h2 id="articleLibraryDrawerTitle">文章库助手</h2>
+            <p class="modal-copy">从文章库检索相关内容，再基于来源文章回答。</p>
+          </div>
+          <button id="articleLibraryDrawerCloseBtn" class="ghost icon-button" type="button" aria-label="关闭">×</button>
+        </div>
+        <label>
+          想找什么文章
+          <textarea id="articleLibraryQuestion" rows="4">有没有关于城市生活和注意力恢复的文章？</textarea>
+        </label>
+        <div class="actions">
+          <button id="askArticleLibraryBtn" type="button">提问</button>
+        </div>
+        <div id="articleLibraryAnswer" class="qa-empty">
+          输入问题后，AI 会先从文章库检索相关内容，再基于来源文章生成回答。
+        </div>
+      </div>
+    </aside>
+
+    <div id="contentEditModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-panel article-modal">
+        <div class="modal-hero">
+          <div>
+            <p class="eyebrow">Content</p>
+            <h2 id="contentEditTitle">编辑内容</h2>
+            <p id="contentEditHint" class="modal-copy">修改后可直接保存，或重新提交审核。</p>
+          </div>
+          <button id="contentEditCloseBtn" class="ghost icon-button" type="button" aria-label="关闭">×</button>
+        </div>
+        <div id="contentEditFields" class="article-detail"></div>
+        <div class="actions">
+          <button id="contentEditSaveBtn" class="ghost" type="button">保存修改</button>
+          <button id="contentEditSubmitBtn" type="button">提交审核</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="./app.js?v=20260612-report1"></script>
+  </body>
+</html>

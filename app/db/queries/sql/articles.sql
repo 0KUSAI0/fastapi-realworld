@@ -40,11 +40,13 @@ SELECT id,
        title,
        description,
        body,
+       content_status,
        created_at,
        updated_at,
        (SELECT username FROM users WHERE id = author_id) AS author_username
 FROM articles
 WHERE slug = :slug
+  AND content_status = 'visible'
 LIMIT 1;
 
 
@@ -55,14 +57,15 @@ WITH author_subquery AS (
     WHERE username = :author_username
 )
 INSERT
-INTO articles (slug, title, description, body, author_id)
-VALUES (:slug, :title, :description, :body, (SELECT id FROM author_subquery))
+INTO articles (slug, title, description, body, author_id, content_status)
+VALUES (:slug, :title, :description, :body, (SELECT id FROM author_subquery), :content_status)
 RETURNING
     id,
     slug,
     title,
     description,
     body,
+    content_status,
         (SELECT username FROM author_subquery) as author_username,
     created_at,
     updated_at;
@@ -99,6 +102,7 @@ SELECT a.id,
        a.title,
        a.description,
        a.body,
+       a.content_status,
        a.created_at,
        a.updated_at,
        (
@@ -110,6 +114,7 @@ FROM articles a
          INNER JOIN followers_to_followings f ON
         f.following_id = a.author_id AND
         f.follower_id = (SELECT id FROM users WHERE username = :follower_username)
+WHERE a.content_status = 'visible'
 ORDER BY a.created_at
 LIMIT :limit
 OFFSET
